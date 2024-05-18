@@ -95,6 +95,7 @@ def main():
         context = b.new_context(no_viewport=True)
         tickers_page = context.new_page()
         login(tickers_page)
+        tickers_page.locator("body").press("End")
         tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
         news_page = context.new_page()
         news_page.goto(FINVIZ_NEWS_URL, wait_until="domcontentloaded")
