@@ -89,10 +89,11 @@ def login(page: Page):
 def main():
     with sync_playwright() as p:
         b = p.chromium.launch(headless=False)
-        tickers_page = b.new_page()
+        context = b.new_context()
+        tickers_page = context.new_page()
         login(tickers_page)
         tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
-        news_page = b.new_page()
+        news_page = context.new_page()
         news_page.goto(FINVIZ_NEWS_URL, wait_until="domcontentloaded")
         attempt = 0
         while True:
