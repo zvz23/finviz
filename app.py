@@ -17,8 +17,8 @@ logger = logging.getLogger('discord')
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 DB_NAME = 'finviz.db'
-TICKERS_CHANNEL = 1240989466152271985
-NEWS_CHANEL = 1240637900299702312
+TICKERS_CHANNEL = 1241211391952551969
+NEWS_CHANEL = 1241211355449655389
 
 intents = discord.Intents.default()
 intents.message_content = True
