@@ -64,6 +64,9 @@ def get_tickers(tickers_page: Page):
         obj["tickers_only"].append(tickers_signal_only)
     return obj
 
+def get_futures():
+    pass
+
 def login(page: Page):
     page.bring_to_front()
     while True:
@@ -88,8 +91,8 @@ def login(page: Page):
     
 def main():
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=False)
-        context = b.new_context()
+        b = p.chromium.launch(headless=False, args=["--start-maximized"])
+        context = b.new_context(no_viewport=True)
         tickers_page = context.new_page()
         login(tickers_page)
         tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
