@@ -9,6 +9,7 @@ load_dotenv()
 
 FINVIZ_HOME_URL = "https://finviz.com/"
 FINVIZ_NEWS_URL = "https://finviz.com/news.ashx"
+FINVIZ_FUTURES_URL = "https://elite.finviz.com/futures.ashx"
 FINVIZ_LOGIN_URL = "https://finviz.com/login.ashx"
 
 FINVIZ_EMAIL = os.environ.get("FINVIZ_EMAIL")
@@ -58,14 +59,31 @@ def get_tickers(tickers_page: Page):
         first_ticker = signal_only_sel.evaluate("signal_only_sel => signal_only_sel.children[0].innerText")
         second_ticker = signal_only_sel.evaluate("signal_only_sel => signal_only_sel.children[1].innerText")
         tickers_signal_only = {
-            'tickers': [first_ticker, second_ticker],
-            'signal': signal_only_sel.evaluate("signal_only_sel => signal_only_sel.children[2].innerText")
+            "tickers": [first_ticker, second_ticker],
+            "signal": signal_only_sel.evaluate("signal_only_sel => signal_only_sel.children[2].innerText")
         }
         obj["tickers_only"].append(tickers_signal_only)
     return obj
 
-def get_futures():
-    pass
+def get_futures(futures_page: Page):
+    futures_page.bring_to_front()
+    futures_container_sels = futures_page.query_selector_all("#futures div.grid > a")
+    futures = []
+    for future_sel in futures_container_sels:
+        try:
+            futures.append({
+                "ticker": future_sel.query_selector(":scope > :nth-child(2)").inner_text().strip(),
+                "price": future_sel.query_selector(":scope > :nth-child(3)").inner_text().strip(),
+                "high": future_sel.query_selector(":scope > :nth-child(4) > :nth-child(1) > :nth-child(1) > :nth-child(2)").inner_text().strip(),
+                "high_gain": future_sel.query_selector(":scope > :nth-child(4) > :nth-child(1) > :nth-child(2)").inner_text().strip(),
+                "low": future_sel.query_selector(":scope >:nth-child(4) > :nth-child(2) > :nth-child(1) > :nth-child(2)").inner_text().strip(),
+                "low_gain": future_sel.query_selector(":scope > :nth-child(4) > :nth-child(2) > :nth-child(2)").inner_text().strip(),
+            })
+        except:
+            pass
+        print(futures[-1]['ticker'])
+    return futures
+
 
 def login(page: Page):
     page.bring_to_front()
@@ -99,6 +117,8 @@ def main():
         tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
         news_page = context.new_page()
         news_page.goto(FINVIZ_NEWS_URL, wait_until="domcontentloaded")
+        futures_page = context.new_page()
+        futures_page.goto(FINVIZ_FUTURES_URL)
         attempt = 0
         while True:
             attempt += 1
@@ -107,10 +127,13 @@ def main():
                 with FinvizDB(DB_NAME) as conn:
                     conn.save_news_many([[i] for i in news])
                     print(f"SAVED {len(news)} NEWS")
-            if attempt >= 5:
+            if attempt >= 3:
                 obj = get_tickers(tickers_page)
                 with open('tickers.json', 'w') as f:
                     json.dump(obj, f)
+                futures = get_futures(futures_page)
+                with open("futures.json", "w") as f:
+                    json.dump(futures, f)
                 print("UPDATE TICKERS")
                 attempt = 0
             time.sleep(5)

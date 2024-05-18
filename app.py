@@ -19,6 +19,7 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN')
 DB_NAME = 'finviz.db'
 TICKERS_CHANNEL = 1241211391952551969
 NEWS_CHANEL = 1241211355449655389
+FUTURES_CHANNEL = 1241237696505188466
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -30,6 +31,12 @@ def get_tickers():
     with open('tickers.json', 'r') as f:
         tickers = json.load(f)
     return tickers
+
+def get_futures():
+    futures = None
+    with open('futures.json', 'r') as f:
+        futures = json.load(f)
+    return futures
 
 def format_tickers(tickers_obj: dict):
     tables = []
@@ -95,6 +102,40 @@ def format_tickers_ascii(tickers_obj: dict):
     ))
     return tables
 
+
+def format_futures_ascii(futures: list):
+    tables = []
+    n = len(futures)
+    # Calculate the size of each part
+    part_size = n // 4
+    remainder = n % 4
+
+    futures_row_one = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[:part_size]]
+    futures_row_two = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size:part_size * 2]]
+    futures_row_three = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size * 2:part_size * 3]]
+    futures_row_fourth = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size * 3:]]
+    tables.append(t2a(
+        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
+        body=futures_row_one,
+        style=PresetStyle.thin_compact
+    ))
+    tables.append(t2a(
+        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
+        body=futures_row_two,
+        style=PresetStyle.thin_compact
+    ))
+    tables.append(t2a(
+        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
+        body=futures_row_three,
+        style=PresetStyle.thin_compact
+    ))
+    tables.append(t2a(
+        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
+        body=futures_row_fourth,
+        style=PresetStyle.thin_compact
+    ))
+    return tables
+
 @tasks.loop(seconds=10.0)
 async def send_news():
     not_exported_news = None
@@ -110,18 +151,23 @@ async def send_news():
         logger.info("SENT %s NEWS", len(news_urls))
 
 @tasks.loop(minutes=10.0)
-async def send_tickers():
+async def send_tickers_and_futures():
     tickers_channel = client.get_channel(TICKERS_CHANNEL)
+    futures_channel = client.get_channel(FUTURES_CHANNEL)
     tickers = get_tickers()
+    futures = get_futures()
     tickers_tables = format_tickers_ascii(tickers)
-    for ticker_table in tickers_tables:
-        await tickers_channel.send(f"```\n{ticker_table}\n```")
+    futures_tables = format_futures_ascii(futures)
+    for table in tickers_tables:
+        await tickers_channel.send(f"```\n{table}\n```")
+    for table in futures_tables:
+        await futures_channel.send(f"```\n{table}\n```")
     logger.info("SENT TICKERS")
 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
-    await asyncio.gather([send_news.start(), send_tickers.start()])
+    await asyncio.gather([send_news.start(), send_tickers_and_futures.start()])
 
 @client.event
 async def on_message(message):
