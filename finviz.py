@@ -81,7 +81,6 @@ def get_futures(futures_page: Page):
             })
         except:
             pass
-        print(futures[-1]['ticker'])
     return futures
 
 
@@ -131,10 +130,11 @@ def start_bot():
                 obj = get_tickers(tickers_page)
                 with open('tickers.json', 'w') as f:
                     json.dump(obj, f)
+                print("TICKERS UPDATED")
                 futures = get_futures(futures_page)
                 with open("futures.json", "w") as f:
                     json.dump(futures, f)
-                print("UPDATE TICKERS")
+                print("FUTURES UPDATED")
                 attempt = 0
             time.sleep(5)
 
