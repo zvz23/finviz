@@ -127,7 +127,7 @@ def start_bot():
                 with FinvizDB(DB_NAME) as conn:
                     conn.save_news_many([[i] for i in news])
                     print(f"SAVED {len(news)} NEWS")
-            if attempt >= 3:
+            if attempt >= 10:
                 obj = get_tickers(tickers_page)
                 with open('tickers.json', 'w') as f:
                     json.dump(obj, f)
