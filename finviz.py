@@ -107,7 +107,7 @@ def login(page: Page):
     
 
     
-def main():
+def start_bot():
     with sync_playwright() as p:
         b = p.chromium.launch(headless=False, args=["--start-maximized"])
         context = b.new_context(no_viewport=True)
@@ -137,6 +137,15 @@ def main():
                 print("UPDATE TICKERS")
                 attempt = 0
             time.sleep(5)
+
+
+def main():
+    while True:
+        try:
+            start_bot()
+        except Exception as e:
+            print(e)
+            print("RETRYING BOT")
 
 
 if __name__ == "__main__":
