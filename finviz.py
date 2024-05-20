@@ -101,7 +101,6 @@ def login(page: Page):
             break
         except:
             print("THERE WAS A PROBLEM LOGGING IN")
-            pass
 
     
 
