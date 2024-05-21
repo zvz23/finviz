@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright, Page
 from dotenv import load_dotenv
+from db import McDonaldsDB
+from urllib.parse import urljoin
 import os
 import time
 
@@ -12,19 +14,19 @@ FILINGRE_REPORTS_URL = "https://www.filingre.com/sec-financial-reports"
 FILINGRE_EMAIL = os.environ.get('FILINGRE_EMAIL')
 FILINGRE_PASSWORD = os.environ.get('FILINGRE_PASSWORD')
 
-def get_news_urls(news_page: Page):
+def get_news_filingsre(news_page: Page):
     news_page.bring_to_front()
     news_a_tags = news_page.query_selector_all("div.news-container div.container > div > a")
     news_urls = [i.get_attribute('href') for i in news_a_tags]
     return news_urls
 
-def get_reports(reports_page: Page):
+def get_reports_filingre(reports_page: Page):
     reports_page.bring_to_front()
     reports_page.wait_for_selector("#financials-container-reports div.container > div")
     financial_reports_sels = reports_page.query_selector_all("#financials-container-reports div.container > div")
     reports = {
-        'financial': [],
-        'filings': []
+        'financial_reports': [],
+        'filings_reports': []
     }
     for report_sel in financial_reports_sels:
         financial_report = {}
@@ -32,14 +34,14 @@ def get_reports(reports_page: Page):
         financial_report['name'] = report_sel.query_selector("h4.list-name").inner_text().strip()
         financial_report['report_type'] = report_sel.query_selector("h4[ng-if='data.form']").inner_text().strip()
         financial_report['report_url'] = report_sel.query_selector(":scope > a").get_attribute('href')
-        reports["financial"].append(financial_report)
+        reports["financial_reports"].append(financial_report)
 
     sec_filings_sels = reports_page.query_selector_all("#financials-container-sec div.container > div")
     for filing_sel in sec_filings_sels:
         filing = {}
         filing['symbol'] = filing_sel.query_selector("div.list-symbol h4").inner_text().strip()
-        filing['filing_url'] = filing_sel.query_selector(":scope > a").get_attribute('href')
-        reports['filings'].append(filing)
+        filing['filing_url'] = filing_sel.eval_on_selector(":scope > a", "node => node.href")
+        reports['filings_reports'].append(filing)
 
     return reports
 
@@ -49,6 +51,7 @@ def login(news_page: Page):
     while True:
         news_page.bring_to_front()
         news_page.goto(FILINGRE_HOME_URL)
+        time.sleep(5)
         try:
             login_button = news_page.wait_for_selector("button#login")
             login_button.click()
@@ -74,17 +77,23 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(headless=False, args=["--start-maximized"])
         context = b.new_context(no_viewport=True)
-        news_page = context.new_page()
-        reports_page = context.new_page()
-        # sos_page = context.new_page()
-        login(news_page)
-        news_page.goto(FILINGRE_NEWS_URL)
-        reports_page.bring_to_front()
-        reports_page.goto(FILINGRE_REPORTS_URL)
-        reports = get_reports(reports_page)
-        reports_
-        print(reports)
-
+        filingre_news_page = context.new_page()
+        filingre_reports_page = context.new_page()
+        login(filingre_news_page)
+        filingre_news_page.goto(FILINGRE_NEWS_URL)
+        filingre_reports_page.bring_to_front()
+        filingre_reports_page.goto(FILINGRE_REPORTS_URL)
+        news_urls = get_news_filingsre(filingre_news_page)
+        reports = get_reports_filingre(filingre_reports_page)
+        news_urls = [[i] for i in news_urls]
+        financial_reports = reports['financial']
+        filing_reports = reports['filings']
+        financial_reports = [[i['symbol'], i['name'], i['report_url'], i['report_type']] for i in financial_reports]
+        filing_reports = [[i['symbol'], i['filing_url']] for i in filing_reports]
+        with McDonaldsDB('mcdonalds.db') as conn:
+            conn.save_news_many_filingre(news_urls)
+            conn.save_report_many_filingre(financial_reports)
+            conn.save_filing_many_filingre(filing_reports)
 
 if __name__ == '__main__':
     main()
