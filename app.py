@@ -1,8 +1,7 @@
 from dotenv import load_dotenv
 from discord.ext import tasks
-from db import FinvizDB
-from prettytable import PrettyTable
-from table2ascii import table2ascii as t2a, PresetStyle
+from db import McDonaldsDB
+from formatters import *
 import discord
 import os
 import logging
@@ -26,128 +25,31 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-def get_tickers():
+def get_tickers_finviz():
     tickers = None
-    with open('tickers.json', 'r') as f:
+    with open('tickers_finviz.json', 'r') as f:
         tickers = json.load(f)
     return tickers
 
-def get_futures():
+def get_futures_finviz():
     futures = None
-    with open('futures.json', 'r') as f:
+    with open('futures_finviz.json', 'r') as f:
         futures = json.load(f)
     return futures
 
-def format_tickers(tickers_obj: dict):
-    tables = []
-    tickers = tickers_obj['tickers']
-    tickers_only = tickers_obj['tickers_only']
-    tickers_table = PrettyTable()
-    tickers_only_table = PrettyTable()
-    tickers_table.field_names = ["Ticker", "Last", "Change", "Volume", "Signal"]
-    tickers_only_table.field_names = ["Tickers", "Signal"]
-    mid_index_tickers = len(tickers) // 2
-    mid_index_tickers_only = len(tickers_only) // 2
-
-    tickers_rows_one = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[:mid_index_tickers]]
-    tickers_rows_two = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[mid_index_tickers:]]
-    tickers_table.add_rows(tickers_rows_one)
-    tables.append(tickers_table.get_string())
-    tickers_table.clear_rows()
-    tickers_table.add_rows(tickers_rows_two)
-    tables.append(tickers_table.get_string())
-
-    tickers_only_rows_one = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[:mid_index_tickers_only]]
-    tickers_only_rows_two = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[mid_index_tickers_only:]]
-    tickers_only_table.add_rows(tickers_only_rows_one)
-    tables.append(tickers_only_table.get_string())
-    tickers_only_table.clear_rows()
-    tickers_only_table.add_rows(tickers_only_rows_two)
-    tables.append(tickers_only_table.get_string())
-
-
-    return tables
-
-
-def format_tickers_ascii(tickers_obj: dict):
-    tables = []
-    tickers = tickers_obj['tickers']
-    tickers_only = tickers_obj['tickers_only']
-    mid_index_tickers = len(tickers) // 2
-    mid_index_tickers_only = len(tickers_only) // 2
-    tickers_rows_one = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[:mid_index_tickers]]
-    tickers_rows_two = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[mid_index_tickers:]]
-    tickers_only_rows_one = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[:mid_index_tickers_only]]
-    tickers_only_rows_two = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[mid_index_tickers_only:]]
-    
-    tables.append(t2a(
-        header=["Ticker", "Last", "Change", "Volume", "Signal"],
-        body=tickers_rows_one,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Ticker", "Last", "Change", "Volume", "Signal"],
-        body=tickers_rows_two,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Tickers", "Signal"],
-        body=tickers_only_rows_one,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Tickers", "Signal"],
-        body=tickers_only_rows_two,
-        style=PresetStyle.thin_compact
-    ))
-    return tables
-
-
-def format_futures_ascii(futures: list):
-    tables = []
-    n = len(futures)
-    # Calculate the size of each part
-    part_size = n // 4
-    remainder = n % 4
-
-    futures_row_one = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[:part_size]]
-    futures_row_two = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size:part_size * 2]]
-    futures_row_three = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size * 2:part_size * 3]]
-    futures_row_fourth = [[i['ticker'], i['price'], i['high'], i['high_gain'], i['low'], i['low_gain']] for i in futures[part_size * 3:]]
-    tables.append(t2a(
-        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
-        body=futures_row_one,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
-        body=futures_row_two,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
-        body=futures_row_three,
-        style=PresetStyle.thin_compact
-    ))
-    tables.append(t2a(
-        header=["Ticker", "Price", "High", "Gain", "Low", "Gain"],
-        body=futures_row_fourth,
-        style=PresetStyle.thin_compact
-    ))
-    return tables
 
 @tasks.loop(seconds=10.0)
-async def send_news():
+async def send_news_finviz():
     not_exported_news = None
-    with FinvizDB(DB_NAME) as conn:
-        not_exported_news = conn.get_news_not_exported()
+    with McDonaldsDB(DB_NAME) as conn:
+        not_exported_news = conn.get_news_not_exported_finviz()
     if not_exported_news:
         channel = client.get_channel(NEWS_CHANEL)
         news_urls = [i['URL'] for i in not_exported_news]
         for news_url in news_urls:
             await channel.send(news_url)
-        with FinvizDB(DB_NAME) as conn:
-            conn.set_news_exported_many([[i] for i in news_urls])
+        with McDonaldsDB(DB_NAME) as conn:
+            conn.set_news_exported_many_finviz([[i] for i in news_urls])
         logger.info("SENT %s NEWS", len(news_urls))
 
 @tasks.loop(minutes=10.0)
@@ -167,7 +69,7 @@ async def send_tickers_and_futures():
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
-    await asyncio.gather([send_news.start(), send_tickers_and_futures.start()])
+    await asyncio.gather([send_news_finviz.start(), send_tickers_and_futures.start()])
 
 @client.event
 async def on_message(message):

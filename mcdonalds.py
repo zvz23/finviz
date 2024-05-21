@@ -1,5 +1,5 @@
-from playwright.sync_api import sync_playwright, Page
-from db import FinvizDB
+from playwright.sync_api import sync_playwright, Page, Browser
+from db import McDonaldsDB
 from dotenv import load_dotenv
 import time
 import json
@@ -15,7 +15,7 @@ FINVIZ_LOGIN_URL = "https://finviz.com/login.ashx"
 FINVIZ_EMAIL = os.environ.get("FINVIZ_EMAIL")
 FINVIZ_PASSWORD = os.environ.get("FINVIZ_PASSWORD")
 
-DB_NAME = 'finviz.db'
+DB_NAME = 'mcdonalds.db'
 
 source_with_embed = [
     "yahoo.com",
@@ -25,15 +25,14 @@ source_with_embed = [
     "cnbc.com"
 ]
 
-
-def get_news_urls(news_page: Page):
+def get_news_urls_finviz(news_page: Page):
     news_page.bring_to_front()
     base_news_sel = news_page.wait_for_selector("table.news_time-table > tbody >tr:nth-child(2) > td:nth-child(1) > table")
     news_a_tags = base_news_sel.query_selector_all("tr a")
     news_urls = [i.get_attribute("href") for i in news_a_tags]
     return news_urls
 
-def get_tickers(tickers_page: Page):
+def get_tickers_finviz(tickers_page: Page):
     tickers_page.bring_to_front()
     signal_one_container_sel = tickers_page.query_selector("#js-signals_1")
     signal_two_container_sel = tickers_page.query_selector("#js-signals_2")
@@ -83,7 +82,6 @@ def get_futures(futures_page: Page):
             pass
     return futures
 
-
 def login(page: Page):
     page.bring_to_front()
     while True:
@@ -109,29 +107,31 @@ def start_bot():
     with sync_playwright() as p:
         b = p.chromium.launch(headless=False, args=["--start-maximized"])
         context = b.new_context(no_viewport=True)
-        tickers_page = context.new_page()
-        login(tickers_page)
-        tickers_page.locator("body").press("End")
-        tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
-        news_page = context.new_page()
-        news_page.goto(FINVIZ_NEWS_URL, wait_until="domcontentloaded")
+        finviz_tickers_page = context.new_page()
+        login(finviz_tickers_page)
+        finviz_tickers_page.locator("body").press("End")
+        finviz_tickers_page.goto(FINVIZ_HOME_URL, wait_until="domcontentloaded")
+        finviz_news_page = context.new_page()
+        finviz_news_page.goto(FINVIZ_NEWS_URL, wait_until="domcontentloaded")
         futures_page = context.new_page()
-        futures_page.goto(FINVIZ_FUTURES_URL)
+        futures_page.goto(FINVIZ_FUTURES_URL, wait_until="domcontentloaded")
+        
+        
         attempt = 0
         while True:
             attempt += 1
-            news = get_news_urls(news_page)
-            if news:
-                with FinvizDB(DB_NAME) as conn:
-                    conn.save_news_many([[i] for i in news])
-                    print(f"SAVED {len(news)} NEWS")
+            finviz_news = get_news_urls_finviz(finviz_news_page)
+            if finviz_news:
+                with McDonaldsDB(DB_NAME) as conn:
+                    conn.save_news_many_finviz([[i] for i in finviz_news])
+                    print(f"SAVED {len(finviz_news)} NEWS")
             if attempt >= 10:
-                obj = get_tickers(tickers_page)
-                with open('tickers.json', 'w') as f:
+                obj = get_tickers_finviz(finviz_tickers_page)
+                with open('tickers_finviz.json', 'w') as f:
                     json.dump(obj, f)
                 print("TICKERS UPDATED")
                 futures = get_futures(futures_page)
-                with open("futures.json", "w") as f:
+                with open("futures_finviz.json", "w") as f:
                     json.dump(futures, f)
                 print("FUTURES UPDATED")
                 attempt = 0
