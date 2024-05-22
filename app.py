@@ -48,10 +48,10 @@ def get_reports_filingre():
 async def send_news():
     not_exported_finviz_news = None
     with McDonaldsDB(DB_NAME) as conn:
-        not_exported_news = conn.get_news_not_exported_finviz()
+        not_exported_finviz_news = conn.get_news_not_exported_finviz()
     if not_exported_finviz_news:
         channel = client.get_channel(FINVIZ_NEWS_CHANEL)
-        news_urls = [i['URL'] for i in not_exported_news]
+        news_urls = [i['URL'] for i in not_exported_finviz_news]
         for news_url in news_urls:
             await channel.send(news_url)
         with McDonaldsDB(DB_NAME) as conn:
