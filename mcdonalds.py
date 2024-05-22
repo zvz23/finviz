@@ -134,7 +134,7 @@ def get_reports_filingre(reports_page: Page):
 def login_filingre(news_page: Page):
     while True:
         news_page.bring_to_front()
-        news_page.goto(FILINGRE_HOME_URL)
+        news_page.goto(FILINGRE_HOME_URL, wait_until="domcontentloaded")
         time.sleep(5)
         try:
             login_button = news_page.wait_for_selector("button#login")
@@ -175,9 +175,9 @@ def start_bot():
         filingre_news_page = context.new_page()
         filingre_reports_page = context.new_page()
         login_filingre(filingre_news_page)
-        filingre_news_page.goto(FILINGRE_NEWS_URL)
+        filingre_news_page.goto(FILINGRE_NEWS_URL, wait_until="domcontentloaded")
         filingre_reports_page.bring_to_front()
-        filingre_reports_page.goto(FILINGRE_REPORTS_URL)
+        filingre_reports_page.goto(FILINGRE_REPORTS_URL, wait_until="domcontentloaded")
 
         attempt = 0
         while True:
