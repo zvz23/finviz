@@ -121,16 +121,14 @@ def get_reports_filingre(reports_page: Page):
     for report_sel in financial_reports_sels:
         financial_report = {}
         financial_report['symbol'] = report_sel.query_selector("div.list-symbol > h4").inner_text().strip()
-        financial_report['name'] = report_sel.query_selector("h4.list-name").inner_text().strip()
-        financial_report['report_type'] = report_sel.query_selector("h4[ng-if='data.form']").inner_text().strip()
-        financial_report['report_url'] = report_sel.query_selector(":scope > a").get_attribute('href')
+        financial_report['url'] = report_sel.query_selector(":scope > a").get_attribute('href')
         reports["financial"].append(financial_report)
 
     sec_filings_sels = reports_page.query_selector_all("#financials-container-sec div.container > div")
     for filing_sel in sec_filings_sels:
         filing = {}
         filing['symbol'] = filing_sel.query_selector("div.list-symbol h4").inner_text().strip()
-        filing['filing_url'] = filing_sel.eval_on_selector(":scope > a", "node => node.href")
+        filing['url'] = filing_sel.eval_on_selector(":scope > a", "node => node.href")
         reports['filings'].append(filing)
 
     return reports
@@ -190,6 +188,7 @@ def start_bot():
             attempt += 1
             finviz_news = get_news_finviz(finviz_news_page)
             filingre_news = get_news_filingsre(filingre_news_page)
+
             if finviz_news:
                 with McDonaldsDB(DB_NAME) as conn:
                     conn.save_news_many_finviz([[i] for i in finviz_news])
@@ -199,7 +198,17 @@ def start_bot():
                 with McDonaldsDB(DB_NAME) as conn:
                     conn.save_news_many_filingre([[i] for i in filingre_news])
                     print(f"SAVED {len(finviz_news)} NEWS FROM FILINGRE")
-             
+
+            filingre_reports = get_reports_filingre(filingre_reports_page)
+            financial_reports = filingre_reports['financial']
+            financial_reports = [[i['symbol'], i['url']] for i in financial_reports]
+            filing_reports = filingre_reports['filings']
+            filing_reports = [[i['symbol'], i['url']] for i in filing_reports]
+            with McDonaldsDB(DB_NAME) as conn:
+                conn.save_financial_report_many_filingre(financial_reports)
+                conn.save_filing_report_many_filingre(filing_reports)
+                print(f"SAVED {len(financial_reports)} FINANCIAL REPORTS")
+                print(f"SAVED {len(filing_reports)} FILING REPORTS")
             if attempt >= 10:
                 obj = get_tickers_finviz(finviz_tickers_page)
                 with open('tickers_finviz.json', 'w') as f:

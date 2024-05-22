@@ -9,16 +9,19 @@ import json
 import asyncio
 
 
-load_dotenv()
+load_dotenv(override=True)
 
 handler = logging.FileHandler(filename='app.log', encoding='utf-8', mode='w')
 logger = logging.getLogger('discord')
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
-DB_NAME = 'finviz.db'
-TICKERS_CHANNEL = 1241211391952551969
-NEWS_CHANEL = 1241211355449655389
-FUTURES_CHANNEL = 1241237696505188466
+DB_NAME = 'mcdonalds.db'
+TICKERS_CHANNEL = 1240989466152271985
+FINVIZ_NEWS_CHANEL = 1240637900299702312
+FUTURES_CHANNEL = 1242227419545604227
+REPORTS_CHANNEL = 1242227496192049193
+FILINGRE_NEWS_CHANNEL = 1242227456606474352
+
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -37,39 +40,72 @@ def get_futures_finviz():
         futures = json.load(f)
     return futures
 
+def get_financial_reports_filingre():
+    with McDonaldsDB(DB_NAME) as conn:
+        return conn.get_financial_report_not_exported_filingre()
+
+def get_filing_reports_filingre():
+    with McDonaldsDB(DB_NAME) as conn:
+        return conn.get_filing_report_not_exported_filingre()   
 
 @tasks.loop(seconds=10.0)
-async def send_news_finviz():
-    not_exported_news = None
+async def send_news():
+    not_exported_finviz_news = None
     with McDonaldsDB(DB_NAME) as conn:
         not_exported_news = conn.get_news_not_exported_finviz()
-    if not_exported_news:
-        channel = client.get_channel(NEWS_CHANEL)
+    if not_exported_finviz_news:
+        channel = client.get_channel(FINVIZ_NEWS_CHANEL)
         news_urls = [i['URL'] for i in not_exported_news]
         for news_url in news_urls:
             await channel.send(news_url)
         with McDonaldsDB(DB_NAME) as conn:
             conn.set_news_exported_many_finviz([[i] for i in news_urls])
-        logger.info("SENT %s NEWS", len(news_urls))
+        logger.info("SENT %s FINVIZ NEWS", len(news_urls))
+
+    not_exported_filingre_news = None
+    with McDonaldsDB(DB_NAME) as conn:
+        not_exported_filingre_news = conn.get_news_not_exported_filingre()
+    if not_exported_filingre_news:
+        channel = client.get_channel(FILINGRE_NEWS_CHANNEL)
+        news_urls = [i['URL'] for i in not_exported_filingre_news]
+        for news_url in news_urls:
+            await channel.send(news_url)
+        with McDonaldsDB(DB_NAME) as conn:
+            conn.set_news_exported_many_filingre([[i] for i in news_urls])
+        logger.info("SENT %s FILINGRE NEWS", len(news_urls))
 
 @tasks.loop(minutes=10.0)
-async def send_tickers_and_futures():
+async def send_tickers_and_futures_and_reports():
     tickers_channel = client.get_channel(TICKERS_CHANNEL)
     futures_channel = client.get_channel(FUTURES_CHANNEL)
-    tickers = get_tickers()
-    futures = get_futures()
-    tickers_tables = format_tickers_ascii(tickers)
-    futures_tables = format_futures_ascii(futures)
+    reports_channel = client.get_channel(REPORTS_CHANNEL)
+    tickers = get_tickers_finviz()
+    futures = get_futures_finviz()
+    financial_reports = get_financial_reports_filingre()
+    filing_reports = get_filing_reports_filingre()
+    tickers_tables = format_tickers_finviz_ascii(tickers)
+    futures_tables = format_futures_finviz_ascii(futures)
+    financial_reports_tables = format_financial_reports(financial_reports)
+    filing_reports_tables = format_filing_reports(filing_reports)
     for table in tickers_tables:
         await tickers_channel.send(f"```\n{table}\n```")
     for table in futures_tables:
         await futures_channel.send(f"```\n{table}\n```")
-    logger.info("SENT TICKERS")
+    for table in financial_reports_tables:
+        await reports_channel.send(table)
+        with McDonaldsDB(DB_NAME) as conn:
+            conn.set_financial_report_exported_many_filingre([[i['ID']] for i in financial_reports])
+    for table in filing_reports_tables:
+        await reports_channel.send(table)
+        with McDonaldsDB(DB_NAME) as conn:
+            conn.set_filing_report_exported_many_filingre([[i['ID']] for i in filing_reports])
+    
+    logger.info("SENT TICKERS AND REPORTS")
 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
-    await asyncio.gather([send_news_finviz.start(), send_tickers_and_futures.start()])
+    await asyncio.gather([send_news.start(), send_tickers_and_futures_and_reports.start()])
 
 @client.event
 async def on_message(message):

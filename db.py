@@ -24,13 +24,13 @@ class McDonaldsDB:
         self.cursor.executemany("INSERT OR IGNORE INTO finviz_news(URL) VALUES(?)", urls)
 
     def set_news_exported_finviz(self, url: str):
-        self.cursor.execute("UPDATE news SET IS_EXPORTED=1 WHERE URL=?", (url, ))
+        self.cursor.execute("UPDATE finviz_news SET IS_EXPORTED=1 WHERE URL=?", (url, ))
 
     def set_news_exported_many_finviz(self, urls: str):
-        self.cursor.executemany("UPDATE news SET IS_EXPORTED=1 WHERE URL=?", urls)
+        self.cursor.executemany("UPDATE finviz_news SET IS_EXPORTED=1 WHERE URL=?", urls)
 
     def get_news_not_exported_finviz(self):
-        self.cursor.execute("SELECT * FROM news WHERE IS_EXPORTED=0")
+        self.cursor.execute("SELECT * FROM finviz_news WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()
 
     def save_news_filingre(self, url: str):
@@ -49,35 +49,34 @@ class McDonaldsDB:
         self.cursor.execute("SELECT * FROM filingre_news WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()
     
-    def save_report_filingre(self, symbol: str, name: str, url: str, type: str):
-        self.cursor.execute("INSERT OR IGNORE INTO filingre_reports(SYMBOL, NAME, URL, TYPE) VALUES(?, ?, ?, ?)", (symbol, name, url, type))
+    def save_financial_report_filingre(self, symbol: str, url: str):
+        self.cursor.execute("INSERT OR IGNORE INTO filingre_reports(SYMBOL, URL) VALUES(?, ?)", (symbol, name, url, type))
     
-    def save_report_many_filingre(self, reports: list):
-        self.cursor.executemany("INSERT OR IGNORE INTO filingre_reports(SYMBOL, NAME, URL, TYPE) VALUES(?, ?, ?, ?)", reports)
+    def save_financial_report_many_filingre(self, reports: list):
+        self.cursor.executemany("INSERT OR IGNORE INTO filingre_reports(SYMBOL, URL) VALUES(?, ?)", reports)
 
-    def get_reports_not_exported_filingre(self):
+    def get_financial_report_not_exported_filingre(self):
         self.cursor.execute("SELECT * FROM filingre_reports WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()   
     
-    def set_report_exported_filingre(self, id: int):
+    def set_financial_report_exported_filingre(self, id: int):
         self.cursor.execute("UPDATE filingre_reports SET IS_EXPORTED=1 WHERE ID=?", (id, ))
 
-    def set_report_exported_many_filingre(self, ids: list):
+    def set_financial_report_exported_many_filingre(self, ids: list):
         self.cursor.executemany("UPDATE filingre_reports SET IS_EXPORTED=1 WHERE ID=?", ids)
              
-    def save_filing_filingre(self, symbol: str, url: str):
+    def save_filing_report_filingre(self, symbol: str, url: str):
         self.cursor.execute("INSERT OR IGNORE INTO filingre_filings(SYMBOL, URL) VALUES(?, ?)", (symbol, url))
     
-    def save_filing_many_filingre(self, reports: list):
+    def save_filing_report_many_filingre(self, reports: list):
         self.cursor.executemany("INSERT OR IGNORE INTO filingre_filings(SYMBOL, URL) VALUES(?, ?)", reports)
 
-    def get_filing_not_exported_filingre(self):
+    def get_filing_report_not_exported_filingre(self):
         self.cursor.execute("SELECT * FROM filingre_filings WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()   
     
-    def set_filing_exported_filingre(self, id: int):
+    def set_filing_report_exported_filingre(self, id: int):
         self.cursor.execute("UPDATE filingre_filings SET IS_EXPORTED=1 WHERE ID=?", (id, ))
 
-    def set_filing_exported_many_filingre(self, ids: list):
+    def set_filing_report_exported_many_filingre(self, ids: list):
         self.cursor.executemany("UPDATE filingre_filings SET IS_EXPORTED=1 WHERE ID=?", ids) 
-    

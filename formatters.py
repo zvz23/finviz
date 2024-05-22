@@ -1,36 +1,23 @@
 from prettytable import PrettyTable
 from table2ascii import table2ascii as t2a, PresetStyle
 
-def format_tickers(tickers_obj: dict):
+def format_financial_reports(financial_reports: list):
     tables = []
-    tickers = tickers_obj['tickers']
-    tickers_only = tickers_obj['tickers_only']
-    tickers_table = PrettyTable()
-    tickers_only_table = PrettyTable()
-    tickers_table.field_names = ["Ticker", "Last", "Change", "Volume", "Signal"]
-    tickers_only_table.field_names = ["Tickers", "Signal"]
-    mid_index_tickers = len(tickers) // 2
-    mid_index_tickers_only = len(tickers_only) // 2
-
-    tickers_rows_one = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[:mid_index_tickers]]
-    tickers_rows_two = [[i['ticker'], i['last'], i['change'], i['volume'], i['signal']] for i in tickers[mid_index_tickers:]]
-    tickers_table.add_rows(tickers_rows_one)
-    tables.append(tickers_table.get_string())
-    tickers_table.clear_rows()
-    tickers_table.add_rows(tickers_rows_two)
-    tables.append(tickers_table.get_string())
-
-    tickers_only_rows_one = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[:mid_index_tickers_only]]
-    tickers_only_rows_two = [[' '.join(i['tickers']), i['signal']] for i in tickers_only[mid_index_tickers_only:]]
-    tickers_only_table.add_rows(tickers_only_rows_one)
-    tables.append(tickers_only_table.get_string())
-    tickers_only_table.clear_rows()
-    tickers_only_table.add_rows(tickers_only_rows_two)
-    tables.append(tickers_only_table.get_string())
-
+    mid_index = len(financial_reports) // 2
+    tables.append('\n'.join([f"{i['symbol']}|{i['url']}" for i in financial_reports[:mid_index]]))
+    tables.append('\n'.join([f"{i['symbol']}|{i['url']}" for i in financial_reports[mid_index:]]))
     return tables
 
-def format_tickers_ascii(tickers_obj: dict):
+
+def format_filing_reports(filing_reports: list):
+    tables = []
+    mid_index = len(filing_reports) // 2
+    tables.append('\n'.join([f"{i['symbol']}|{i['url']}" for i in filing_reports[:mid_index]]))
+    tables.append('\n'.join([f"{i['symbol']}|{i['url']}" for i in filing_reports[mid_index:]]))
+    return tables
+
+
+def format_tickers_finviz_ascii(tickers_obj: dict):
     tables = []
     tickers = tickers_obj['tickers']
     tickers_only = tickers_obj['tickers_only']
@@ -64,8 +51,7 @@ def format_tickers_ascii(tickers_obj: dict):
     return tables
 
 
-
-def format_futures_ascii(futures: list):
+def format_futures_finviz_ascii(futures: list):
     tables = []
     n = len(futures)
     # Calculate the size of each part
