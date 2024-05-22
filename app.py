@@ -95,7 +95,9 @@ async def send_tickers_and_futures_and_reports():
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
-    await asyncio.gather([send_news.start(), send_tickers_and_futures_and_reports.start()])
+    # await asyncio.gather([send_news.start(), send_tickers_and_futures_and_reports.start()])
+    send_news.start()
+    send_tickers_and_futures_and_reports.start()
 
 @client.event
 async def on_message(message):
