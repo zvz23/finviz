@@ -101,7 +101,8 @@ def login_finviz(page: Page):
             submit_button.click()
             page.wait_for_selector("#js-signals_1", timeout=6000)
             break
-        except:
+        except Exception as e:
+            print(e)
             print("THERE WAS A PROBLEM LOGGING IN")
 
 def get_news_filingsre(news_page: Page):
@@ -112,24 +113,21 @@ def get_news_filingsre(news_page: Page):
 
 def get_reports_filingre(reports_page: Page):
     reports_page.bring_to_front()
-    reports_page.wait_for_selector("#financials-container-reports div.container > div")
-    financial_reports_sels = reports_page.query_selector_all("#financials-container-reports div.container > div")
-    reports = {
-        'financial': [],
-        'filings': []
-    }
-    for report_sel in financial_reports_sels:
-        financial_report = {}
-        financial_report['symbol'] = report_sel.query_selector("div.list-symbol > h4").inner_text().strip()
-        financial_report['url'] = report_sel.query_selector(":scope > a").get_attribute('href')
-        reports["financial"].append(financial_report)
+    reports_page.wait_for_selector("#financials-split-section div.container > div")
+    reports_sels = reports_page.query_selector_all("#financials-container-reports div.container > div")
+    reports = []
+    for report_sel in reports_sels:
+        report = {}
+        report['symbol'] = report_sel.query_selector("div.list-symbol > h4").inner_text().strip()
+        report['url'] = report_sel.eval_on_selector(":scope > a", "node => node.href")
+        reports.append(report)
 
-    sec_filings_sels = reports_page.query_selector_all("#financials-container-sec div.container > div")
-    for filing_sel in sec_filings_sels:
-        filing = {}
-        filing['symbol'] = filing_sel.query_selector("div.list-symbol h4").inner_text().strip()
-        filing['url'] = filing_sel.eval_on_selector(":scope > a", "node => node.href")
-        reports['filings'].append(filing)
+    reports_sels = reports_page.query_selector_all("#financials-container-sec div.container > div")
+    for report_sel in reports_sels:
+        report = {}
+        report['symbol'] = report_sel.query_selector("div.list-symbol > div > h4").inner_text().strip()
+        report['url'] = report_sel.eval_on_selector(":scope > a", "node => node.href")
+        reports.append(report)
 
     return reports
 
@@ -181,8 +179,6 @@ def start_bot():
         filingre_reports_page.bring_to_front()
         filingre_reports_page.goto(FILINGRE_REPORTS_URL)
 
-        
-        
         attempt = 0
         while True:
             attempt += 1
@@ -200,15 +196,10 @@ def start_bot():
                     print(f"SAVED {len(finviz_news)} NEWS FROM FILINGRE")
 
             filingre_reports = get_reports_filingre(filingre_reports_page)
-            financial_reports = filingre_reports['financial']
-            financial_reports = [[i['symbol'], i['url']] for i in financial_reports]
-            filing_reports = filingre_reports['filings']
-            filing_reports = [[i['symbol'], i['url']] for i in filing_reports]
+            filingre_reports = [[i['symbol'], i['url']] for i in filingre_reports]
             with McDonaldsDB(DB_NAME) as conn:
-                conn.save_financial_report_many_filingre(financial_reports)
-                conn.save_filing_report_many_filingre(filing_reports)
-                print(f"SAVED {len(financial_reports)} FINANCIAL REPORTS")
-                print(f"SAVED {len(filing_reports)} FILING REPORTS")
+                conn.save_report_many_filingre(filingre_reports)
+                print(f"SAVED {len(filingre_reports)} REPORTS FROM FILINGRE")
             if attempt >= 10:
                 obj = get_tickers_finviz(finviz_tickers_page)
                 with open('tickers_finviz.json', 'w') as f:

@@ -49,34 +49,18 @@ class McDonaldsDB:
         self.cursor.execute("SELECT * FROM filingre_news WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()
     
-    def save_financial_report_filingre(self, symbol: str, url: str):
-        self.cursor.execute("INSERT OR IGNORE INTO filingre_reports(SYMBOL, URL) VALUES(?, ?)", (symbol, name, url, type))
+    def save_report_filingre(self, symbol: str, url: str):
+        self.cursor.execute("INSERT OR IGNORE INTO filingre_reports(SYMBOL, URL) VALUES(?, ?)", (symbol, url))
     
-    def save_financial_report_many_filingre(self, reports: list):
+    def save_report_many_filingre(self, reports: list):
         self.cursor.executemany("INSERT OR IGNORE INTO filingre_reports(SYMBOL, URL) VALUES(?, ?)", reports)
 
-    def get_financial_report_not_exported_filingre(self):
+    def get_report_not_exported_filingre(self):
         self.cursor.execute("SELECT * FROM filingre_reports WHERE IS_EXPORTED=0")
         return self.cursor.fetchall()   
     
-    def set_financial_report_exported_filingre(self, id: int):
+    def set_report_exported_filingre(self, id: int):
         self.cursor.execute("UPDATE filingre_reports SET IS_EXPORTED=1 WHERE ID=?", (id, ))
 
-    def set_financial_report_exported_many_filingre(self, ids: list):
+    def set_report_exported_many_filingre(self, ids: list):
         self.cursor.executemany("UPDATE filingre_reports SET IS_EXPORTED=1 WHERE ID=?", ids)
-             
-    def save_filing_report_filingre(self, symbol: str, url: str):
-        self.cursor.execute("INSERT OR IGNORE INTO filingre_filings(SYMBOL, URL) VALUES(?, ?)", (symbol, url))
-    
-    def save_filing_report_many_filingre(self, reports: list):
-        self.cursor.executemany("INSERT OR IGNORE INTO filingre_filings(SYMBOL, URL) VALUES(?, ?)", reports)
-
-    def get_filing_report_not_exported_filingre(self):
-        self.cursor.execute("SELECT * FROM filingre_filings WHERE IS_EXPORTED=0")
-        return self.cursor.fetchall()   
-    
-    def set_filing_report_exported_filingre(self, id: int):
-        self.cursor.execute("UPDATE filingre_filings SET IS_EXPORTED=1 WHERE ID=?", (id, ))
-
-    def set_filing_report_exported_many_filingre(self, ids: list):
-        self.cursor.executemany("UPDATE filingre_filings SET IS_EXPORTED=1 WHERE ID=?", ids) 

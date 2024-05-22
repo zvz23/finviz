@@ -40,13 +40,9 @@ def get_futures_finviz():
         futures = json.load(f)
     return futures
 
-def get_financial_reports_filingre():
+def get_reports_filingre():
     with McDonaldsDB(DB_NAME) as conn:
-        return conn.get_financial_report_not_exported_filingre()
-
-def get_filing_reports_filingre():
-    with McDonaldsDB(DB_NAME) as conn:
-        return conn.get_filing_report_not_exported_filingre()   
+        return conn.get_report_not_exported_filingre()
 
 @tasks.loop(seconds=10.0)
 async def send_news():
@@ -81,24 +77,18 @@ async def send_tickers_and_futures_and_reports():
     reports_channel = client.get_channel(REPORTS_CHANNEL)
     tickers = get_tickers_finviz()
     futures = get_futures_finviz()
-    financial_reports = get_financial_reports_filingre()
-    filing_reports = get_filing_reports_filingre()
+    filingre_reports = get_reports_filingre()
     tickers_tables = format_tickers_finviz_ascii(tickers)
     futures_tables = format_futures_finviz_ascii(futures)
-    financial_reports_tables = format_financial_reports(financial_reports)
-    filing_reports_tables = format_filing_reports(filing_reports)
+    reports_tables = format_reports_filingre(filingre_reports)
     for table in tickers_tables:
         await tickers_channel.send(f"```\n{table}\n```")
     for table in futures_tables:
         await futures_channel.send(f"```\n{table}\n```")
-    for table in financial_reports_tables:
+    for table in reports_tables:
         await reports_channel.send(table)
         with McDonaldsDB(DB_NAME) as conn:
-            conn.set_financial_report_exported_many_filingre([[i['ID']] for i in financial_reports])
-    for table in filing_reports_tables:
-        await reports_channel.send(table)
-        with McDonaldsDB(DB_NAME) as conn:
-            conn.set_filing_report_exported_many_filingre([[i['ID']] for i in filing_reports])
+            conn.set_report_exported_many_filingre([[i['ID']] for i in filingre_reports])
     
     logger.info("SENT TICKERS AND REPORTS")
 
