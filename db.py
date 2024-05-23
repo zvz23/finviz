@@ -64,3 +64,6 @@ class McDonaldsDB:
 
     def set_report_exported_many_filingre(self, ids: list):
         self.cursor.executemany("UPDATE filingre_reports SET IS_EXPORTED=1 WHERE ID=?", ids)
+
+    def set_all_filingre_news_not_exported(self):
+        self.cursor.execute("UPDATE filingre_news SET IS_EXPORTED=0")
