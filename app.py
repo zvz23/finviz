@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from discord.ext import tasks
 from db import McDonaldsDB
 from formatters import *
+from urllib.parse import urlparse, urljoin
 import discord
 import os
 import logging
@@ -22,11 +23,19 @@ FUTURES_CHANNEL = 1241237696505188466
 REPORTS_CHANNEL = 1242120229920837642
 FILINGRE_NEWS_CHANNEL = 1242115894252142722
 
+MCCCDONALDS_BASE_URL = "http://mcccdonalds.com/news/"
+
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 
 client = discord.Client(intents=intents)
+
+def replace_filingre_news_url(news_url: str):
+    parsed_news_url = urlparse(news_url)
+    news_path = parsed_news_url.path
+    return urljoin(MCCCDONALDS_BASE_URL, news_path)
 
 def get_tickers_finviz():
     tickers = None
@@ -65,7 +74,11 @@ async def send_news():
         channel = client.get_channel(FILINGRE_NEWS_CHANNEL)
         news_urls = [i['URL'] for i in not_exported_filingre_news]
         for news_url in news_urls:
-            await channel.send(news_url)
+            if "filingre.com/news/" in news_url:
+                new_news_url = replace_filingre_news_url(news_url)
+                await channel.send(new_news_url)
+            else:
+                await channel.send(news_url)
         with McDonaldsDB(DB_NAME) as conn:
             conn.set_news_exported_many_filingre([[i] for i in news_urls])
         logger.info("SENT %s FILINGRE NEWS", len(news_urls))
