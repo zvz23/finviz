@@ -99,7 +99,7 @@ def login_finviz(page: Page):
             password_input.click()
             password_input.type(FINVIZ_PASSWORD)
             submit_button.click()
-            page.wait_for_selector("#js-signals_1", timeout=6000)
+            page.wait_for_selector("#js-signals_1", timeout=10000)
             break
         except Exception as e:
             print(e)
