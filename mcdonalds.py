@@ -158,7 +158,7 @@ def login_filingre(news_page: Page):
     
 def start_bot():
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=True, args=["--start-maximized"])
+        b = p.chromium.launch(headless=False, args=["--start-maximized"])
         context = b.new_context(no_viewport=True)
 
         # Setup Finviz
