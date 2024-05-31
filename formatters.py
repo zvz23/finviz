@@ -1,25 +1,7 @@
-from prettytable import PrettyTable
 from table2ascii import table2ascii as t2a, PresetStyle
 
 def format_reports_filingre(reports: list):
-    tables = []
-    n = len(reports)
-    # Calculate the size of each part
-    part_size = n // 4
-    remainder = n % 4
-    table_one = '\n'.join([f"{i['symbol']}|{i['url']}" for i in reports[:part_size]])
-    table_two = '\n'.join([f"{i['symbol']}|{i['url']}" for i in reports[part_size:part_size * 2]])
-    table_three = '\n'.join([f"{i['symbol']}|{i['url']}" for i in reports[part_size * 2:part_size * 3]])
-    table_four = '\n'.join([f"{i['symbol']}|{i['url']}" for i in reports[part_size * 3:]])
-
-    if table_one:
-        tables.append(table_one)
-    if table_two:
-        tables.append(table_two)
-    if table_three:
-        tables.append(table_three)
-    if table_four:
-        tables.append(table_four)
+    tables = ['\n'.join([f"{x['symbol']}|{x['url']}" for x in reports[i:i + 5]]) for i in range(0, len(reports), 5)]
     return tables
 
 def format_tickers_finviz_ascii(tickers_obj: dict):
