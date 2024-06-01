@@ -79,6 +79,7 @@ async def send_news():
                 await channel.send(new_news_url)
             else:
                 await channel.send(news_url)
+    if not_exported_filingre_news:
         with McDonaldsDB(DB_NAME) as conn:
             conn.set_news_exported_many_filingre([[i] for i in news_urls])
         logger.info("SENT %s FILINGRE NEWS", len(news_urls))
