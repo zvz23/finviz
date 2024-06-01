@@ -7,7 +7,7 @@ class McDonaldsDB:
         self.cursor = None
 
     def __enter__(self):
-        self.conn = sqlite3.connect(self.db)
+        self.conn = sqlite3.connect(self.db, timeout=20)
         self.cursor = self.conn.cursor()
         self.cursor.row_factory = sqlite3.Row
         return self
