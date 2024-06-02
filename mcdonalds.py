@@ -105,50 +105,41 @@ def login_finviz(page: Page):
             print(e)
             print("THERE WAS A PROBLEM LOGGING IN")
 
-def get_news_filingsre(news_page: Page):
-    news_page.bring_to_front()
-    news_a_tags = news_page.query_selector_all("div.news-container div.container > div > a")
+def get_news_reports_filingsre(overview_page: Page):
+    overview_page.bring_to_front()
+    news_a_tags = overview_page.query_selector_all("div.news-container a.filing-link")
     news_urls = [i.get_attribute('href') for i in news_a_tags]
-    return news_urls
-
-def get_reports_filingre(reports_page: Page):
-    reports_page.bring_to_front()
-    reports_page.wait_for_selector("#financials-split-section div.container > div")
-    reports_sels = reports_page.query_selector_all("#financials-container-reports div.container > div")
+    
+    reports_sels = overview_page.query_selector_all("#financials-container div.financials-card")
     reports = []
+
     for report_sel in reports_sels:
         report = {}
-        report['symbol'] = report_sel.query_selector("div.list-symbol > h4").inner_text().strip()
-        report['url'] = report_sel.eval_on_selector(":scope > a", "node => node.href")
+        report['symbol'] = report_sel.query_selector("div.list-symbol h4").inner_text().strip()
+        report['url'] = report_sel.eval_on_selector(":scope a.filing-link", "node => node.href")
         reports.append(report)
 
-    reports_sels = reports_page.query_selector_all("#financials-container-sec div.container > div")
-    for report_sel in reports_sels:
-        report = {}
-        report['symbol'] = report_sel.query_selector("div.list-symbol > div > h4").inner_text().strip()
-        report['url'] = report_sel.eval_on_selector(":scope > a", "node => node.href")
-        reports.append(report)
 
-    return reports
+    return (news_urls, reports)
 
-def login_filingre(news_page: Page):
+def login_filingre(overview_page: Page):
     while True:
-        news_page.bring_to_front()
-        news_page.goto(FILINGRE_HOME_URL, wait_until="domcontentloaded")
+        overview_page.bring_to_front()
+        overview_page.goto(FILINGRE_HOME_URL, wait_until="domcontentloaded")
         time.sleep(5)
         try:
-            login_button = news_page.wait_for_selector("button#login")
+            login_button = overview_page.wait_for_selector("button#login")
             login_button.click()
         except:
             return
         try:
-            email_input = news_page.wait_for_selector("input[name='email']")
-            password_input = news_page.wait_for_selector("input[name='password']")
-            submit_button = news_page.wait_for_selector("button[name='submit']")
+            email_input = overview_page.wait_for_selector("input[name='email']")
+            password_input = overview_page.wait_for_selector("input[name='password']")
+            submit_button = overview_page.wait_for_selector("button[name='submit']")
             email_input.type(FILINGRE_EMAIL)
             password_input.type(FILINGRE_PASSWORD)
             submit_button.click()
-            news_page.wait_for_url("https://www.filingre.com/overview")
+            overview_page.wait_for_url("https://www.filingre.com/overview")
             time.sleep(3)
             break
         except Exception as e:
@@ -172,18 +163,14 @@ def start_bot():
         finviz_futures_page.goto(FINVIZ_FUTURES_URL, wait_until="domcontentloaded")
 
         # Setup Filingre
-        filingre_news_page = context.new_page()
-        filingre_reports_page = context.new_page()
-        login_filingre(filingre_news_page)
-        filingre_news_page.goto(FILINGRE_NEWS_URL, wait_until="domcontentloaded")
-        filingre_reports_page.bring_to_front()
-        filingre_reports_page.goto(FILINGRE_REPORTS_URL, wait_until="domcontentloaded")
+        filingre_overview_page = context.new_page()
+        login_filingre(filingre_overview_page)
 
         attempt = 0
         while True:
             attempt += 1
             finviz_news = get_news_finviz(finviz_news_page)
-            filingre_news = get_news_filingsre(filingre_news_page)
+            filingre_news, filingre_reports = get_news_reports_filingsre(filingre_overview_page)
 
             if finviz_news:
                 with McDonaldsDB(DB_NAME) as conn:
@@ -194,12 +181,13 @@ def start_bot():
                 with McDonaldsDB(DB_NAME) as conn:
                     conn.save_news_many_filingre([[i] for i in filingre_news])
                     print(f"SAVED {len(finviz_news)} NEWS FROM FILINGRE")
-
-            filingre_reports = get_reports_filingre(filingre_reports_page)
-            filingre_reports = [[i['symbol'], i['url']] for i in filingre_reports]
-            with McDonaldsDB(DB_NAME) as conn:
-                conn.save_report_many_filingre(filingre_reports)
-                print(f"SAVED {len(filingre_reports)} REPORTS FROM FILINGRE")
+            
+            if filingre_reports:
+                filingre_reports = [[i['symbol'], i['url']] for i in filingre_reports]
+                with McDonaldsDB(DB_NAME) as conn:
+                    conn.save_report_many_filingre(filingre_reports)
+                    print(f"SAVED {len(filingre_reports)} REPORTS FROM FILINGRE")
+                    
             if attempt >= 10:
                 obj = get_tickers_finviz(finviz_tickers_page)
                 with open('tickers_finviz.json', 'w') as f:
